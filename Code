@@ -1,0 +1,56 @@
+Arduino IDE code:
+
+#include <LCD_I2C.h>
+LCD_I2C lcd(0x27);
+#define RXD2 16  // RX pin for Serial2
+#define TXD2 17  // TX pin for Serial2
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#define BLYNK_TEMPLATE_ID "TMPL3ZBjhw-b5"
+#define BLYNK_TEMPLATE_NAME "SMART DUSTBIN IOT"
+#define BLYNK_AUTH_TOKEN "GwSx9M0G2aXbu4f1WiSj3sIYrtAxNBJm"
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "IOT";
+char pass[] = "123456789";
+#define water 35
+#include <ESP32Servo.h>
+Servo myServo;  
+int servoPin = 15; 
+#include <EveryTimer.h>
+#define PERIOD_MS 1000
+EveryTimer timer;
+bool active = true;
+#define ir1 4
+#define ir2 19
+int trigPin = 5;    // Trigger
+int echoPin = 18; // Echo
+int value;
+long duration, cm, inches;
+int sec=0,irval1,irval2;
+
+void setup() 
+{
+    Serial.begin(9600);
+    myServo.attach(servoPin);  
+    myServo.write(90);
+    delay(100);  
+    timer.Every(PERIOD_MS, action);
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+    pinMode(water,INPUT);
+    pinMode(ir1,INPUT);
+    pinMode(ir2,INPUT);
+    Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); 
+    Serial.println("gsm testing ");
+    lcd.begin(); 
+    lcd.backlight();
+    lcd.setCursor(0,0);
+    lcd.print("  WET AND DRY ");
+    lcd.setCursor(0,1);
+    lcd.print("WASTESEGRECATION ");
+    Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+    delay(3000);
+    lcd.clear();
+  }
