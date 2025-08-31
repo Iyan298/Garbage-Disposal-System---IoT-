@@ -1,0 +1,212 @@
+Arduino IDE code:
+
+#include <LCD_I2C.h>
+LCD_I2C lcd(0x27);
+#define RXD2 16  // RX pin for Serial2
+#define TXD2 17  // TX pin for Serial2
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#define BLYNK_TEMPLATE_ID "TMPL3ZBjhw-b5"
+#define BLYNK_TEMPLATE_NAME "SMART DUSTBIN IOT"
+#define BLYNK_AUTH_TOKEN "GwSx9M0G2aXbu4f1WiSj3sIYrtAxNBJm"
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "IOT";
+char pass[] = "123456789";
+#define water 35
+#include <ESP32Servo.h>
+Servo myServo;  
+int servoPin = 15; 
+#include <EveryTimer.h>
+#define PERIOD_MS 1000
+EveryTimer timer;
+bool active = true;
+#define ir1 4
+#define ir2 19
+int trigPin = 5;    // Trigger
+int echoPin = 18; // Echo
+int value;
+long duration, cm, inches;
+int sec=0,irval1,irval2;
+
+void setup() 
+{
+    Serial.begin(9600);
+    myServo.attach(servoPin);  
+    myServo.write(90);
+    delay(100);  
+    timer.Every(PERIOD_MS, action);
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+    pinMode(water,INPUT);
+    pinMode(ir1,INPUT);
+    pinMode(ir2,INPUT);
+    Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); 
+    Serial.println("gsm testing ");
+    lcd.begin(); 
+    lcd.backlight();
+    lcd.setCursor(0,0);
+    lcd.print("  WET AND DRY ");
+    lcd.setCursor(0,1);
+    lcd.print("WASTESEGRECATION ");
+    Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+    delay(3000);
+    lcd.clear();
+  }
+
+void loop() 
+{
+  Serial.print("WAter :");
+  Serial.println(analogRead(water));
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(15);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  pinMode(echoPin, INPUT);
+  duration = pulseIn(echoPin, HIGH);
+ // Convert the time into a distance
+  cm = (duration/2) / 29.1;
+     //
+ Divide by 29.1 or multiply by 0.0343
+ // inches = (duration/2) / 74;   // Divide by 74 or multiply by 0.0135
+   Serial.print("VOL : ");
+  Serial.println(cm);
+Serial.print("Sec:");
+ Serial.println(sec);
+ if(cm<=15 && cm>0)
+  {
+    Serial.println("OBJECT PLACED");
+    timer.Update();
+    lcd.setCursor(0,0);
+    lcd.print("OBJECT PLACED");
+  }
+ else
+ {
+    lcd.setCursor(0,0);
+    lcd.print("
+ }
+ if(sec>=5)
+  {
+                     ");
+    Serial.print("--------------Dry object");
+    lcd.setCursor(0,1);
+    lcd.print("   DRY WASTE");
+    myServo.write(0);
+    Blynk.virtualWrite(V0,"DRY WASTE");
+    sec=0;
+    delay(2000);
+    lcd.setCursor(0,1);
+    lcd.print("
+              ");
+    myServo.write(90);
+    Blynk.virtualWrite(V0,"
+  }
+                    ");
+ if(analogRead(water)<=4000 && cm<=15)
+  {
+    Serial.println("----------------WET OBJECT");
+    myServo.write(180);
+    lcd.setCursor(0,1);
+    lcd.print("   WET WASTE");
+    Blynk.virtualWrite(V1," WET WASTE");
+    delay(2000);
+    lcd.setCursor(0,1);
+    lcd.print("
+                ");
+    myServo.write(90);
+    sec=0;
+    Blynk.virtualWrite(V1,"
+  }
+  irval1 = digitalRead(ir1);
+                 ");
+  Serial.print("IR--1 :");
+  Serial.println(irval1);
+  lcd.setCursor(0, 1);
+  lcd.print("WET:" );
+  if(irval1==0)
+  {
+    Serial.println("wet full ");
+    lcd.setCursor(4, 1);
+    lcd.print("F" );
+    SendMessage1();
+    Blynk.logEvent("msg", "WET WASTE FULL");
+  }
+  else
+  {
+     lcd.setCursor(4, 1);
+     lcd.print("  " );
+   }
+    irval2 = digitalRead(ir2);
+    Serial.print("IR--2 :");
+    Serial.println(irval2);
+    lcd.setCursor(8, 1);
+    lcd.print("DRY:" );
+ if(irval2==0)
+  {
+    Serial.println("DRY FULL ");
+    lcd.setCursor(12, 1);
+    lcd.print("F" );
+    SendMessage2();
+    Blynk.logEvent("msg1", "DRY WASTE FULL");
+  }
+ else
+  {
+      lcd.setCursor(12, 1);
+       lcd.print("  " );
+    }
+ Blynk.run();
+ delay(300);
+ }
+ //DRY OPEN
+ BLYNK_WRITE(V2) {
+  int button = param.asInt();
+  if (button == 1) 
+   {
+       myServo.write(0);
+     }
+  else
+   {    
+      myServo.write(90);}
+    }
+ //WET OPEN
+ BLYNK_WRITE(V3) 
+{
+  int button = param.asInt();
+  if (button == 1)
+   {
+       myServo.write(180);
+    }
+  else
+   {    
+      myServo.write(90);}
+    }
+ void SendMessage1()
+ {
+   Serial.println("hi");
+   Serial2.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+   delay(2000);  // Delay of 1000 milli seconds or 1 second
+   Serial2.println("AT+CMGS=\"+91XXXXXXXXXX\"\r"); // Replace x with mobile number
+   delay(2000);
+   Serial2.println("WET WASTE FULL");// The SMS text you want to send
+   delay(100);
+   Serial2.println((char)26);// ASCII code of CTRL+Z
+   delay(2000);
+ }
+ void SendMessage2()
+ {
+    Serial.println("hi");
+    Serial2.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+    delay(2000);  // Delay of 1000 milli seconds or 1 second
+    Serial2.println("AT+CMGS=\"+91XXXXXXXXXX\"\r"); // Replace x with mobile number
+    delay(2000);
+    Serial2.println("DRY WASTE FULL");// The SMS text you want to send
+    delay(100);
+    Serial2.println((char)26);// ASCII code of CTRL+Z
+    delay(2000);
+ }
+ void action()
+ {
+  sec++;
+ }
